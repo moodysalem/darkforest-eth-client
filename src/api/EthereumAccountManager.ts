@@ -1,5 +1,5 @@
 import * as stringify from 'json-stable-stringify';
-import { Provider, TransactionReceipt } from '@ethersproject/providers';
+import { JsonRpcProvider, TransactionReceipt } from '@ethersproject/providers';
 import { providers, Contract, Wallet, utils } from 'ethers';
 import { EthAddress } from '../_types/global/GlobalTypes';
 import { address } from '../utils/CheckedTypeUtils';
@@ -145,7 +145,7 @@ class MiniRpcProvider implements AsyncSendable {
 class EthereumAccountManager {
   static instance: EthereumAccountManager | null = null;
 
-  private readonly provider: Provider;
+  private readonly provider: JsonRpcProvider;
   private signer: Wallet | null;
   private readonly knownAddresses: EthAddress[];
 
@@ -153,6 +153,7 @@ class EthereumAccountManager {
     const isProd = process.env.NODE_ENV === 'production';
     const url = isProd ? 'https://dai.poa.network' : 'http://localhost:8545';
     this.provider = new providers.Web3Provider((new MiniRpcProvider(100, url, 1000)) as providers.ExternalProvider);
+    this.provider.pollingInterval = 8000;
     this.signer = null;
     this.knownAddresses = [];
     const knownAddressesStr = localStorage.getItem('KNOWN_ADDRESSES');
