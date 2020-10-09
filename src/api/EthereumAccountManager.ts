@@ -62,7 +62,11 @@ class MiniRpcProvider implements AsyncSendable {
       }).then(response => {
         if (!response.ok) throw new RetryableError()
         return response
-      }), {n: Infinity, minWait: 500, maxWait: 2500}).promise
+      })
+        .catch(error => {
+          console.error('Batch request failed', error)
+          throw new RetryableError()
+        }), {n: Infinity, minWait: 500, maxWait: 2500}).promise
     } catch (error) {
       batch.forEach(({ reject }) => reject(new Error('Failed to send batch call')))
       return
