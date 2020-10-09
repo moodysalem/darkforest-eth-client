@@ -3,7 +3,7 @@ import { Provider, TransactionReceipt } from '@ethersproject/providers';
 import { providers, Contract, Wallet, utils } from 'ethers';
 import { EthAddress } from '../_types/global/GlobalTypes';
 import { address } from '../utils/CheckedTypeUtils';
-import { retry } from './retry';
+import { retry, RetryableError } from './retry';
 
 // taken from ethers.js, compatible interface with web3 provider
 type AsyncSendable = {
@@ -59,6 +59,9 @@ class MiniRpcProvider implements AsyncSendable {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify(batch.map(item => item.request))
+      }).then(response => {
+        if (!response.ok) throw new RetryableError()
+        return response
       }), {n: Infinity, minWait: 500, maxWait: 2500}).promise
     } catch (error) {
       batch.forEach(({ reject }) => reject(new Error('Failed to send batch call')))
