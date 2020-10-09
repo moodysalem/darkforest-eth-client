@@ -47,7 +47,7 @@ class MinerManager extends EventEmitter {
   private workers: Worker[];
   private worldRadius: number;
   private readonly planetRarity: number;
-  private cores = 1;
+  private cores = 8;
   // chunks we're exploring
   private exploringChunk: { [chunkKey: string]: ExploredChunkData } = {};
   // when we started exploring this chunk
@@ -73,7 +73,7 @@ class MinerManager extends EventEmitter {
     this.workers = [];
     this.useMockHash = useMockHash;
     if (useMockHash) {
-      this.cores = 1;
+      this.cores = 8;
     }
   }
 
