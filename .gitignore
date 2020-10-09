@@ -13,8 +13,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# built by local-deploy
-/src/utils/local_contract_addr.ts
 
 # firebase
 .firebase
