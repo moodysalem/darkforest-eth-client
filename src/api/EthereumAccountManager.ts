@@ -26,6 +26,18 @@ interface BatchItem {
   reject: (error: Error) => void
 }
 
+// chunks array into chunks of maximum size
+// evenly distributes items among the chunks
+function chunkArray<T>(items: T[], maxChunkSize: number): T[][] {
+  if (maxChunkSize < 1) throw new Error('maxChunkSize must be gte 1')
+  if (items.length <= maxChunkSize) return [items]
+
+  const numChunks: number = Math.ceil(items.length / maxChunkSize)
+  const chunkSize = Math.ceil(items.length / numChunks)
+
+  return [...Array(numChunks).keys()].map(ix => items.slice(ix * chunkSize, ix * chunkSize + chunkSize))
+}
+
 class MiniRpcProvider implements AsyncSendable {
   public readonly isMetaMask: false = false
   public readonly chainId: number
@@ -53,37 +65,41 @@ class MiniRpcProvider implements AsyncSendable {
     const batch = this.batch
     this.batch = []
     this.batchTimeoutId = null
-    let response: Response
+    let responses: Response[]
     try {
-      response = await retry(() => fetch(this.url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify(batch.map(item => item.request))
-      }).then(response => {
-        if (!response.ok) throw new RetryableError()
-        return response
-      })
-        .catch(error => {
-          console.error('Batch request failed', error)
-          throw new RetryableError()
-        }), {n: Infinity, minWait: 500, maxWait: 2500}).promise
+      const chunks = chunkArray(batch, 10)
+      responses = await Promise.all(chunks.map(
+        (chunk) => {
+          return retry(() => fetch(this.url, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify(chunk.map(item => item.request))
+          }).then(response => {
+            if (!response.ok) {
+              console.log('Failed response status, retrying', response.status)
+              throw new RetryableError();
+            }
+            return response
+          })
+            .catch(error => {
+              console.error('Batch request failed, retrying', error)
+              throw new RetryableError()
+            }), {n: Infinity, minWait: 500, maxWait: 2500}).promise
+        }
+      ))
     } catch (error) {
       batch.forEach(({ reject }) => reject(new Error('Failed to send batch call')))
       return
     }
 
-    if (!response.ok) {
-      batch.forEach(({ reject }) => reject(new RequestError(`${response.status}: ${response.statusText}`, -32000)))
-      return
-    }
-
     let json
     try {
-      json = await response.json()
+      json = (await Promise.all(responses.map(r => r.json()))).reduce((memo, arr) => memo.concat(arr), [])
     } catch (error) {
       batch.forEach(({ reject }) => reject(new Error('Failed to parse JSON response')))
       return
     }
+
     const byKey = batch.reduce<{ [id: number]: BatchItem }>((memo, current) => {
       memo[current.request.id] = current
       return memo
