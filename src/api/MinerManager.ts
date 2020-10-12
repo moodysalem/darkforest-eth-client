@@ -36,8 +36,7 @@ export class HomePlanetMinerChunkStore implements ChunkStore {
       x: chunkFootprint.bottomLeft.x + chunkFootprint.sideLength / 2,
       y: chunkFootprint.bottomLeft.y + chunkFootprint.sideLength / 2,
     };
-    if (perlin(center, false) >= this.perlinThreshold) return true;
-    return false;
+    return perlin(center, false) >= this.perlinThreshold;
   }
 }
 
