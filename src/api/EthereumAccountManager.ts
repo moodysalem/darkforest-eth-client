@@ -157,7 +157,7 @@ class EthereumAccountManager extends EventEmitter {
 
     const isProd = process.env.NODE_ENV === 'production';
     const url = isProd ? 'https://dai.poa.network' : 'http://localhost:8545';
-    this.provider = new providers.Web3Provider((new MiniRpcProvider(100, url, 1000)) as providers.ExternalProvider);
+    this.provider = new providers.Web3Provider((new MiniRpcProvider(100, url, 150)) as providers.ExternalProvider);
     this.provider.pollingInterval = 1000;
     this.signer = null;
     this.knownAddresses = [];
